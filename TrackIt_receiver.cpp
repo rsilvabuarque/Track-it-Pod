@@ -23,15 +23,11 @@ float angle;
 
 struct Data_Package {
   float lat;
-  float lon;
+  float lng;
   float alt;
 };
 
 Data_Package gpsData;
-
-int calPotState = 0;
-float servoX = 100;
-float servoY = 200;
 
 void setup() {
   Serial.begin(9600); // initialize serial communication at 9600 bits per second
@@ -56,7 +52,7 @@ void loop() {
     if (radio.available()) {
       radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
     }
-    servoX = gpsData.lon;
+    servoX = gpsData.lng;
     servoY = gpsData.lat;
 
     Serial.println("Calibration state 1...");
@@ -71,13 +67,13 @@ void loop() {
     if (radio.available()) {
       radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
     }
-    xCal = gpsData.lon;
+    xCal = gpsData.lng;
     yCal = gpsData.lat;
 
     // calculate distance between tag and servo (a)
     b = sqrt(pow(xCal - servoX, 2) + pow(yCal - servoY, 2));
 
-    Serial.println("Calibrating...");
+    Serial.println("Calibration state 2...");
     Serial.print("X: ");
     Serial.print(xCal);
     Serial.print(" Y: ");
@@ -89,7 +85,7 @@ void loop() {
     if (radio.available()) {
       radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
     }
-    xCal = gpsData.lon;
+    xCal = gpsData.lng;
     yCal = gpsData.lat;
 
     // calculate distance between tag and servo (b)
