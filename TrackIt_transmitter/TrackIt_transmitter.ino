@@ -49,9 +49,9 @@ void loop() {
   // Debug
   Serial.println("---");
   Serial.print("Latitude: ");
-  Serial.println(gpsData.lat);
+  Serial.println(gpsData.lat, 16);
   Serial.print("Longitude: ");
-  Serial.println(gpsData.lng);
+  Serial.println(gpsData.lng, 16);
   Serial.print("Altitude (cm): ");
   Serial.println(gpsData.alt, 2);
   Serial.print("Satellites: ");
