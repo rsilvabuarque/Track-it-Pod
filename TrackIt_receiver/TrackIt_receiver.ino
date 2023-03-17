@@ -56,6 +56,9 @@ void loop() {
     if (radio.available()) {
       radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
     }
+
+    Serial.println(gpsData.lat);
+
     servoX = gpsData.lng;
     servoY = gpsData.lat;
 

@@ -39,6 +39,7 @@ void loop() {
   while (gpsSerial.available() > 0) {
     if (gps.encode(gpsSerial.read())) {
       if (gps.location.isValid()) {
+        Serial.print("GPS location valid!")
         gpsData.lat = gps.location.lat();
         gpsData.lng = gps.location.lng();
         gpsData.alt = gps.altitude.value();
