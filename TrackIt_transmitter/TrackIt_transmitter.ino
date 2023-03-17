@@ -7,8 +7,8 @@
 const byte address[6] = "00001"; // radio address
 const int radioPinCE = 6; // Pin for CE on radio
 const int radioPinCSN = 7; // Pin for CSN on radio
-const int RX_PIN 3
-const int TX_PIN 4
+#define RX_PIN 3
+#define TX_PIN 4
 
 RF24 radio(radioPinCE, radioPinCSN); // create radio object (CE, CSN)
 SoftwareSerial gpsSerial(RX_PIN, TX_PIN); // Create a SoftwareSerial object to communicate with the GPS sensor
