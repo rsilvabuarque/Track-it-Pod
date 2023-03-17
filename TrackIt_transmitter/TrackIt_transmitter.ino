@@ -48,13 +48,13 @@ void loop() {
   }
   // Debug
   Serial.println("---");
-  Serial.print("Latitude: ")
+  Serial.print("Latitude: ");
   Serial.println(gpsData.lat);
-  Serial.print("Longitude: ")
+  Serial.print("Longitude: ");
   Serial.println(gpsData.lng);
-  Serial.print("Altitude (cm): ")
+  Serial.print("Altitude (cm): ");
   Serial.println(gpsData.alt, 2);
-  Serial.print("Satellites: ")
+  Serial.print("Satellites: ");
   Serial.println(gpsData.satellites);
   // Transmit GPS sensor data
   radio.write(&gpsData, sizeof(Data_Package));
