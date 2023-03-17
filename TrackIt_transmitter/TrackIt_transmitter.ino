@@ -18,6 +18,7 @@ struct Data_Package {
   float lat;
   float lng;
   float alt;
+  int satellites;
 };
 
 Data_Package gpsData;
@@ -40,11 +41,23 @@ void loop() {
       if (gps.location.isValid()) {
         gpsData.lat = gps.location.lat();
         gpsData.lng = gps.location.lng();
-        gpsData.alt = 0;
+        gpsData.alt = gps.altitude.value();
+        gpsData.satellites = gps.satellites.value();
       }
     }
   }
+  // Debug
+  Serial.println("---");
+  Serial.print("Latitude: ")
+  Serial.println(gpsData.lat);
+  Serial.print("Longitude: ")
+  Serial.println(gpsData.lng);
+  Serial.print("Altitude (cm): ")
+  Serial.println(gpsData.alt, 2);
+  Serial.print("Satellites: ")
+  Serial.println(gpsData.satellites);
   // Transmit GPS sensor data
   radio.write(&gpsData, sizeof(Data_Package));
+  Serial.println("---");
   delay(333);
 }

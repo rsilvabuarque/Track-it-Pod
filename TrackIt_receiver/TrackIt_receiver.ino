@@ -28,6 +28,7 @@ struct Data_Package {
   float lat;
   float lng;
   float alt;
+  int satellites;
 };
 
 Data_Package gpsData;
