@@ -25,6 +25,7 @@ float servoX;
 float servoY;
 
 struct Data_Package {
+  string hi;
   float lat;
   float lng;
   float alt;
@@ -63,6 +64,7 @@ void loop() {
     servoY = gpsData.lat;
 
     Serial.println("Calibration state 1...");
+    Serial.println(gpsData.hi);
     Serial.print("X: ");
     Serial.print(servoX);
     Serial.print(" Y: ");
