@@ -20,6 +20,9 @@ float x, y;
 float a, b, c;
 float distance;
 float angle;
+float calPotState;
+float servoX;
+float servoY;
 
 struct Data_Package {
   float lat;
