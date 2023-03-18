@@ -5,8 +5,8 @@
 #include <RF24.h>
 
 const byte address[6] = "00001"; // radio address
-const int radioPinCE = 5; // Pin for CE on radio
-const int radioPinCSN = 6; // Pin for CSN on radio
+const int radioPinCE = 6; // Pin for CE on radio
+const int radioPinCSN = 7; // Pin for CSN on radio
 const int servoPin = 4; // digital pin for servo signal
 const int calPot = A7; // analog pin for calibration switch
 const int potPinX = A0; // analog input pin for X coordinate
