@@ -61,12 +61,15 @@ void loop() {
 
     servoX = gpsData.lng;
     servoY = gpsData.lat;
+    
 
+    Serial.println("---")
     Serial.println("Calibration state 1...");
     Serial.print("servoX: ");
     Serial.print(servoX, 16);
     Serial.print(" servoY: ");
     Serial.println(servoY, 16);
+    Serial.println((String)"Satellites: " + gpsData.satellites + ", Altitude: " + gpsData.alt);
     delay(1000);
   } else if (calPotState <= 600) {
     // Calibration State 2
@@ -80,13 +83,14 @@ void loop() {
 
     // calculate distance between tag and servo (a)
     b = sqrt(pow(xCal - servoX, 2) + pow(yCal - servoY, 2));
-
+    
+    Serial.println("---")
     Serial.println("Calibration state 2...");
     Serial.print("xCal: ");
-    Serial.print(xCal);
+    Serial.print(xCal, 16);
     Serial.print(" yCal: ");
-    Serial.println(yCal);
-    delay(1000);
+    Serial.println(xCal, 16);
+    Serial.println((String)"Satellites: " + gpsData.satellites + ", Altitude: " + gpsData.alt);
   } else {
     // Regular State
 
@@ -110,14 +114,15 @@ void loop() {
       angle = acos((pow(a, 2) + pow(b, 2) - pow(c, 2)) / (2 * a * b)) * 180 / (atan(1) * 4);
     }
     // write angle to servo, subtracting 90 due to
-    myservo.write(angle - 90); // set servo angle
+    myservo.write(angle); // set servo angle
 
+    Serial.println("---")
+    Serial.println("Tracking...");
     Serial.print("x: ");
-    Serial.print(x);
+    Serial.print(x, 16);
     Serial.print(" y: ");
-    Serial.print(y);
-    Serial.print(" Servo angle: ");
-    Serial.println(angle);
+    Serial.println(y, 16);
+    Serial.println((String)"Satellites: " + gpsData.satellites + ", Altitude: " + gpsData.alt);
     delay(1000);
   }
 }
