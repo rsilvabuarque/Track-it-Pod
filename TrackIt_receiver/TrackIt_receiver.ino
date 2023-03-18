@@ -50,25 +50,24 @@ void setup() {
 
 void loop() {
   calPotState = analogRead(calPot);
+  Serial.println(calPotState);
   if (calPotState <= 20) {
     // Calibration State 1
     
-    String testStr = "No data received yet.";
-    // read values from radio receiver
     if (radio.available()) {
-      radio.read(&testStr, sizeof(testStr));
-      //radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
+      // read values from radio receiver
+      radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
     }
-    Serial.println(testStr);
 
     servoX = gpsData.lng;
     servoY = gpsData.lat;
 
     Serial.println("Calibration state 1...");
     Serial.print("servoX: ");
-    Serial.print(servoX);
+    Serial.print(servoX, 16);
     Serial.print(" servoY: ");
-    Serial.println(servoY);
+    Serial.println(servoY, 16);
+    delay(1000);
   } else if (calPotState <= 600) {
     // Calibration State 2
 
@@ -87,6 +86,7 @@ void loop() {
     Serial.print(xCal);
     Serial.print(" yCal: ");
     Serial.println(yCal);
+    delay(1000);
   } else {
     // Regular State
 
@@ -118,7 +118,6 @@ void loop() {
     Serial.print(y);
     Serial.print(" Servo angle: ");
     Serial.println(angle);
+    delay(1000);
   }
-
-  delay(1000); // loop delay of 1 second
 }
