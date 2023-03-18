@@ -127,7 +127,7 @@ void loop() {
       myservo.write(90);
     } else {
       myservo.write(180);}
-    delay(60 * deltaangle / 0.17);
+    delay(0.17 * deltaangle / 60);
 
     Serial.println("---");
     Serial.println("Tracking...");
