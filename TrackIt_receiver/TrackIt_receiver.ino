@@ -25,7 +25,7 @@ float servoX;
 float servoY;
 
 struct Data_Package {
-  string hi;
+  String hi;
   float lat;
   float lng;
   float alt;
