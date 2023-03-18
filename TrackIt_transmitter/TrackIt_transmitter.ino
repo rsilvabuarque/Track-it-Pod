@@ -7,15 +7,15 @@
 const byte address[6] = "00001"; // radio address
 const int radioPinCE = 6; // Pin for CE on radio
 const int radioPinCSN = 7; // Pin for CSN on radio
-#define RX_PIN 3; // Pin for RX on GPS
-#define TX_PIN 4; // Pin for TX on GPS
+#define RX_PIN 3 // Pin for RX on GPS
+#define TX_PIN 4 // Pin for TX on GPS
 
 RF24 radio(radioPinCE, radioPinCSN); // create radio object (CE, CSN)
 SoftwareSerial gpsSerial(RX_PIN, TX_PIN); // Create a SoftwareSerial object to communicate with the GPS sensor
 TinyGPSPlus gps; // Create an instance of the TinyGPS++ object
 
 struct Data_Package {
-  string hi;
+  String hi;
   float lat;
   float lng;
   float alt;
@@ -41,8 +41,8 @@ void loop() {
   while (gpsSerial.available() > 0) {
     if (gps.encode(gpsSerial.read())) {
       if (gps.location.isValid()) {
-        Serial.print("GPS location valid!")
-        gpsData.hi = "Hello"
+        Serial.print("GPS location valid!");
+        gpsData.hi = "Hello";
         gpsData.lat = gps.location.lat();
         gpsData.lng = gps.location.lng();
         gpsData.alt = gps.altitude.value();
