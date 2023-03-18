@@ -42,10 +42,11 @@ void setup() {
   pinMode(calPot, INPUT); // initialize calPot as input
 
   // Set up radio receiver
-  radio.begin();
-  radio.openReadingPipe(0, address);
-  radio.setPALevel(RF24_PA_MIN);
-  radio.startListening();
+  radio.begin(); // Start radio
+  radio.openReadingPipe(0, address); // Set address to listen to
+  radio.setPALevel(RF24_PA_MAX); // Set power level to max to maximize range
+  radio.setDataRate(RF24_250KBPS); // Set data rate to min to maximize range
+  radio.startListening(); // Start listening for transmission
 }
 
 void loop() {
