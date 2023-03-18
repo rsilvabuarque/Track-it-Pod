@@ -31,7 +31,7 @@ void setup() {
 
   // Set up radio transmitter
   radio.begin(); // Start radio
-  radio.openReadingPipe(address); // Set address of receiving radio
+  radio.openWritingPipe(address); // Set address to write to
   radio.setPALevel(RF24_PA_MAX); // Maximum power level to maximize range
   radio.setDataRate(RF24_250KBPS); // Minimum data range to maximize range
   radio.stopListening(); // Stop listening since this is a transmitter
