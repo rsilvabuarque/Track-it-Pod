@@ -34,6 +34,11 @@ void setup() {
   radio.setPALevel(RF24_PA_MAX); // Maximum power level to maximize range
   radio.setDataRate(RF24_250KBPS); // Minimum data range to maximize range
   radio.stopListening(); // Stop listening since this is a transmitter
+  
+  gpsData.lat = 9999;
+  gpsData.lng = 9999;
+  gpsData.alt = 9999;
+  gpsData.satellites = 9999;
 }
 void loop() {
   // Read the GPS sensor data
@@ -59,9 +64,5 @@ void loop() {
   Serial.print("Satellites: ");
   Serial.println(gpsData.satellites);
   // Transmit GPS sensor data
-  //radio.write(&gpsData, sizeof(Data_Package));
-  String testStr = "messi";
-  radio.write(&testStr, sizeof(testStr));
-  Serial.println("---");
-  delay(333);
+  radio.write(&gpsData, sizeof(Data_Package));
 }
