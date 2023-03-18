@@ -5,8 +5,8 @@
 #include <RF24.h>
 
 const byte address[6] = "00001"; // radio address
-const int radioPinCE = 6; // Pin for CE on radio
-const int radioPinCSN = 7; // Pin for CSN on radio
+const int radioPinCE = 7; // Pin for CE on radio
+const int radioPinCSN = 8; // Pin for CSN on radio
 const int servoPin = 4; // digital pin for servo signal
 const int calPot = A7; // analog pin for calibration switch
 const int potPinX = A0; // analog input pin for X coordinate
@@ -25,7 +25,6 @@ float servoX;
 float servoY;
 
 struct Data_Package {
-  String hi;
   float lat;
   float lng;
   float alt;
@@ -53,22 +52,22 @@ void loop() {
   calPotState = analogRead(calPot);
   if (calPotState <= 20) {
     // Calibration State 1
-
+    
+    String testStr = "No data received yet.";
     // read values from radio receiver
     if (radio.available()) {
-      radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
+      radio.read(&testStr, sizeof(testStr));
+      //radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
     }
-
-    Serial.println(gpsData.lat);
+    Serial.println(testStr);
 
     servoX = gpsData.lng;
     servoY = gpsData.lat;
 
     Serial.println("Calibration state 1...");
-    Serial.println(gpsData.hi);
-    Serial.print("X: ");
+    Serial.print("servoX: ");
     Serial.print(servoX);
-    Serial.print(" Y: ");
+    Serial.print(" servoY: ");
     Serial.println(servoY);
   } else if (calPotState <= 600) {
     // Calibration State 2
@@ -84,9 +83,9 @@ void loop() {
     b = sqrt(pow(xCal - servoX, 2) + pow(yCal - servoY, 2));
 
     Serial.println("Calibration state 2...");
-    Serial.print("X: ");
+    Serial.print("xCal: ");
     Serial.print(xCal);
-    Serial.print(" Y: ");
+    Serial.print(" yCal: ");
     Serial.println(yCal);
   } else {
     // Regular State
@@ -95,8 +94,8 @@ void loop() {
     if (radio.available()) {
       radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
     }
-    xCal = gpsData.lng;
-    yCal = gpsData.lat;
+    x = gpsData.lng;
+    y = gpsData.lat;
 
     // calculate distance between tag and servo (b)
     a = sqrt(pow(x - servoX, 2) + pow(y - servoY, 2));
@@ -113,9 +112,9 @@ void loop() {
     // write angle to servo, subtracting 90 due to
     myservo.write(angle - 90); // set servo angle
 
-    Serial.print("X: ");
+    Serial.print("x: ");
     Serial.print(x);
-    Serial.print(" Y: ");
+    Serial.print(" y: ");
     Serial.print(y);
     Serial.print(" Servo angle: ");
     Serial.println(angle);
