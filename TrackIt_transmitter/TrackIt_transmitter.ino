@@ -5,8 +5,8 @@
 #include <TinyGPS++.h>
 
 const byte address[6] = "00001"; // radio address
-const int radioPinCE = 6; // Pin for CE on radio
-const int radioPinCSN = 7; // Pin for CSN on radio
+const int radioPinCE = 7; // Pin for CE on radio
+const int radioPinCSN = 8; // Pin for CSN on radio
 #define RX_PIN 3 // Pin for RX on GPS
 #define TX_PIN 4 // Pin for TX on GPS
 
@@ -15,7 +15,6 @@ SoftwareSerial gpsSerial(RX_PIN, TX_PIN); // Create a SoftwareSerial object to c
 TinyGPSPlus gps; // Create an instance of the TinyGPS++ object
 
 struct Data_Package {
-  String hi;
   float lat;
   float lng;
   float alt;
@@ -42,7 +41,6 @@ void loop() {
     if (gps.encode(gpsSerial.read())) {
       if (gps.location.isValid()) {
         Serial.print("GPS location valid!");
-        gpsData.hi = "Hello";
         gpsData.lat = gps.location.lat();
         gpsData.lng = gps.location.lng();
         gpsData.alt = gps.altitude.value();
@@ -61,7 +59,9 @@ void loop() {
   Serial.print("Satellites: ");
   Serial.println(gpsData.satellites);
   // Transmit GPS sensor data
-  radio.write(&gpsData, sizeof(Data_Package));
+  //radio.write(&gpsData, sizeof(Data_Package));
+  String testStr = "messi";
+  radio.write(&testStr, sizeof(testStr));
   Serial.println("---");
   delay(333);
 }
