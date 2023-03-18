@@ -20,6 +20,8 @@ float x, y;
 float a, b, c;
 float distance;
 float angle;
+float oldangle;
+float deltaangle;
 float calPotState;
 float servoX;
 float servoY;
@@ -93,6 +95,8 @@ void loop() {
     Serial.print(" yCal: ");
     Serial.println(xCal, 16);
     Serial.println((String)"Satellites: " + gpsData.satellites + ", Altitude: " + gpsData.alt);
+    // store the old tag angle (85 for the calibration axis since that is the direction of the camera towards the action) for motor speed calculation
+    oldangle = 85;
   } else {
     // Regular State
 
@@ -115,8 +119,15 @@ void loop() {
     } else {
       angle = acos((pow(a, 2) + pow(b, 2) - pow(c, 2)) / (2 * a * b)) * 180 / (atan(1) * 4);
     }
-    // write angle to servo, subtracting 85 due to centralization of the servo motor axis
-    myservo.write(angle); // set servo angle
+    deltaangle = angle - oldangle;
+    // write angle to servo by running the continuous motor clockwise or counterclockwise for a time determined with the motor's angular speed (0.02833 s/degree)
+    if (deltaangle > 0) {
+      myservo.write(0);
+    } else if (deltaangle == 0) {
+      myservo.write(90);
+    } else {
+      myservo.write(180);}
+    delay(60 * deltaangle / 0.17);
 
     Serial.println("---");
     Serial.println("Tracking...");
