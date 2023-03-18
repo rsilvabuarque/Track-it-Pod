@@ -7,8 +7,8 @@
 const byte address[6] = "00001"; // radio address
 const int radioPinCE = 6; // Pin for CE on radio
 const int radioPinCSN = 7; // Pin for CSN on radio
-#define RX_PIN 3;
-#define TX_PIN 4;
+#define RX_PIN 3; // Pin for RX on GPS
+#define TX_PIN 4; // Pin for TX on GPS
 
 RF24 radio(radioPinCE, radioPinCSN); // create radio object (CE, CSN)
 SoftwareSerial gpsSerial(RX_PIN, TX_PIN); // Create a SoftwareSerial object to communicate with the GPS sensor
@@ -29,11 +29,12 @@ void setup() {
   Serial.begin(9600); 
   gpsSerial.begin(9600);
 
-  // Set up radio receiver
-  radio.begin();
-  radio.openReadingPipe(0, address);
-  radio.setPALevel(RF24_PA_MIN);
-  radio.startListening();
+  // Set up radio transmitter
+  radio.begin(); // Start radio
+  radio.openReadingPipe(address); // Set address of receiving radio
+  radio.setPALevel(RF24_PA_MAX); // Maximum power level to maximize range
+  radio.setDataRate(RF24_250KBPS); // Minimum data range to maximize range
+  radio.stopListening(); // Stop listening since this is a transmitter
 }
 void loop() {
   // Read the GPS sensor data
