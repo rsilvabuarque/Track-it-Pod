@@ -46,19 +46,30 @@ void loop() {
       if (gps.location.isValid()) {
         gpsData.lat = gps.location.lat();
         gpsData.lng = gps.location.lng();
+      } else {
+        gpsData.lat = 9999;
+        gpsData.lng = 9999;        
+      }
+      if (gps.altitude.isValid()) {
         gpsData.alt = gps.altitude.value();
+      } else {
+        gpsData.alt = 9999;
+      }
+      if (gps.satellites.isValid()) {
         gpsData.satellites = gps.satellites.value();
-
-        // Debug
-        Serial.println("---");
-        Serial.print("Latitude: ");
-        Serial.println(gpsData.lat, 16);
-        Serial.print("Longitude: ");
-        Serial.println(gpsData.lng, 16);
-        Serial.print("Altitude (cm): ");
-        Serial.println(gpsData.alt, 2);
-        Serial.print("Satellites: ");
-        Serial.println(gpsData.satellites);
+      } else {
+        gpsData.satellites = 9999;
+      }
+      // Debug
+      Serial.println("---");
+      Serial.print("Latitude: ");
+      Serial.println(gpsData.lat, 16);
+      Serial.print("Longitude: ");
+      Serial.println(gpsData.lng, 16);
+      Serial.print("Altitude (cm): ");
+      Serial.println(gpsData.alt, 2);
+      Serial.print("Satellites: ");
+      Serial.println(gpsData.satellites);
       }
     }
   }
