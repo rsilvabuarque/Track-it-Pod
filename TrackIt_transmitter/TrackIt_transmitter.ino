@@ -4,16 +4,6 @@
 #include <SoftwareSerial.h>
 #include <TinyGPS++.h>
 
-const byte address[6] = "00001"; // radio address
-const int radioPinCE = 7; // Pin for CE on radio
-const int radioPinCSN = 8; // Pin for CSN on radio
-#define RX_PIN 3 // Pin for RX on GPS
-#define TX_PIN 4 // Pin for TX on GPS
-
-RF24 radio(radioPinCE, radioPinCSN); // create radio object (CE, CSN)
-SoftwareSerial gpsSerial(RX_PIN, TX_PIN); // Create a SoftwareSerial object to communicate with the GPS sensor
-TinyGPSPlus gps; // Create an instance of the TinyGPS++ object
-
 struct Data_Package {
   float lat;
   float lng;
@@ -21,12 +11,22 @@ struct Data_Package {
   int satellites;
 };
 
-Data_Package gpsData;
+const byte address[6] = "00001"; // radio address
+#define RADIO_CE_PIN 7 // Pin for CE on radio
+#define RADIO_CSN_PIN 8 // Pin for CSN on radio
+#define GPS_RX_PIN 4 // Pin for RX on GPS
+#define GPS_TX_PIN 3 // Pin for TX on GPS
+#define GPS_BAUD_RATE 9600 // Baud rate for GPS
+
+RF24 radio(RADIO_CE_PIN, RADIO_CSN_PIN); // Create radio object (CE, CSN)
+SoftwareSerial gpsSerial(GPS_RX_PIN, GPS_TX_PIN); // Create a SoftwareSerial object to communicate with the GPS sensor
+TinyGPSPlus gps; // Create an instance of the TinyGPS++ object
+Data_Package gpsData; // Create Data_Package object for storing and sending gps data
 
 void setup() {
   // Initialize serial communication at 9600 bits per second
   Serial.begin(9600); 
-  gpsSerial.begin(9600);
+  gpsSerial.begin(GPS_BAUD_RATE);
 
   // Set up radio transmitter
   radio.begin(); // Start radio
@@ -35,34 +35,33 @@ void setup() {
   radio.setDataRate(RF24_250KBPS); // Minimum data range to maximize range
   radio.stopListening(); // Stop listening since this is a transmitter
   
-  gpsData.lat = 9999;
-  gpsData.lng = 9999;
-  gpsData.alt = 9999;
-  gpsData.satellites = 9999;
+  // Default values
+  gpsData.lat = gpsData.lng = gpsData.alt = gpsData.satellites = 9999;
 }
+
 void loop() {
   // Read the GPS sensor data
   while (gpsSerial.available() > 0) {
     if (gps.encode(gpsSerial.read())) {
       if (gps.location.isValid()) {
-        Serial.print("GPS location valid!");
         gpsData.lat = gps.location.lat();
         gpsData.lng = gps.location.lng();
         gpsData.alt = gps.altitude.value();
         gpsData.satellites = gps.satellites.value();
+
+        // Debug
+        Serial.println("---");
+        Serial.print("Latitude: ");
+        Serial.println(gpsData.lat, 16);
+        Serial.print("Longitude: ");
+        Serial.println(gpsData.lng, 16);
+        Serial.print("Altitude (cm): ");
+        Serial.println(gpsData.alt, 2);
+        Serial.print("Satellites: ");
+        Serial.println(gpsData.satellites);
       }
     }
   }
-  // Debug
-  Serial.println("---");
-  Serial.print("Latitude: ");
-  Serial.println(gpsData.lat, 16);
-  Serial.print("Longitude: ");
-  Serial.println(gpsData.lng, 16);
-  Serial.print("Altitude (cm): ");
-  Serial.println(gpsData.alt, 2);
-  Serial.print("Satellites: ");
-  Serial.println(gpsData.satellites);
   // Transmit GPS sensor data
   radio.write(&gpsData, sizeof(Data_Package));
 }
