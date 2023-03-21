@@ -16,13 +16,15 @@ const byte address[6] = "00001"; // radio address
 #define RADIO_CSN_PIN 8 // Pin for CSN on radio
 #define SERVO_PIN 4 // digital pin for servo signal
 #define CALIBRATION_POT_PIN A7 // analog pin for calibration switch
-#define STEPS_PER_REVOLUTION 1800 // number of steps for one revolution for stepper motor (0.2 deg per step)
+// if motor changed, lookup max stepper rpm and steps per revolution
+#define STEPS_PER_REVOLUTION 2048 // number of steps for one revolution for stepper motor (0.18 deg per step)
+#define STEPPER_SPEED 15
 
 float xCal, yCal;
 float servoX, servoY;
 float prevX, prevY;
 float b;
-float leftoverSteps;
+float leftoverSteps; 
 
 Stepper panStepper(STEPS_PER_REVOLUTION, 2, 3, 4, 5); // Create stepper object (IN1, IN2, IN3, IN4)
 RF24 radio(RADIO_CE_PIN, RADIO_CSN_PIN); // Create radio object (CE, CSN)
@@ -31,6 +33,9 @@ Data_Package gpsData; // Create Data_Package for storing transmitting GPS data
 void setup() {
   Serial.begin(9600); // initialize serial communication at 9600 bits per second
 
+  // Set stepper to max RPM
+  panStepper.setSpeed(STEPPER_SPEED);
+  
   // Will change to 3-way button in the future
   pinMode(CALIBRATION_POT_PIN, INPUT); // initialize calPot as input
 
