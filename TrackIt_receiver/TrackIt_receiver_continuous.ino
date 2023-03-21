@@ -3,6 +3,8 @@
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
 
 struct Data_Package {
   float lat;
@@ -26,12 +28,14 @@ float prevX, prevY;
 float b;
 float leftoverSteps; 
 
-Stepper panStepper(STEPS_PER_REVOLUTION, 2, 3, 4, 5); // Create stepper object (IN1, IN2, IN3, IN4)
+Stepper panStepper(STEPS_PER_REVOLUTION, 2, 4, 3, 5); // Create stepper object (IN1, IN2, IN3, IN4)
 RF24 radio(RADIO_CE_PIN, RADIO_CSN_PIN); // Create radio object (CE, CSN)
 Data_Package gpsData; // Create Data_Package for storing transmitting GPS data
+LiquidCrystal_I2C lcd(0x27, 16, 2); // Set the LCD address to 0x27 for a 16 chars and 2 line display
 
 void setup() {
-  Serial.begin(9600); // initialize serial communication at 9600 bits per second
+  // Initialize serial communication at 9600 bits per second
+  Serial.begin(9600);
 
   // Set stepper to max RPM
   panStepper.setSpeed(STEPPER_SPEED);
@@ -45,6 +49,10 @@ void setup() {
   radio.setPALevel(RF24_PA_MAX); // Set power level to max to maximize range
   radio.setDataRate(RF24_250KBPS); // Set data rate to min to maximize range
   radio.startListening(); // Start listening for transmission
+
+  // initialize the LCD and turn on the blacklight
+	lcd.begin(16, 2);
+	lcd.backlight(); 
 }
 
 void loop() {
@@ -84,6 +92,9 @@ void loop() {
     Serial.print(" y: ");
     Serial.println(y, 16);
     Serial.println((String)"Satellites: " + gpsData.satellites + ", Altitude: " + gpsData.alt);
+    lcd.setCursor(0, 0);
+    lcd.print("Track # Sats: ");
+    lcd.print(gpsData.satellites);
     delay(100);
   }
 }
@@ -97,8 +108,12 @@ bool readRadio(Data_Package gpsData) {
   if (radio.available()) {
     // read values from radio receiver
     radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
+    lcd.setCursor(0, 1);
+    lcd.print("Radio read OK :)");
     return true;
   }
+  lcd.setCursor(0, 1);
+  lcd.print("RADIO ERROR");
   return false;
 }
 
@@ -168,6 +183,10 @@ void calibrationStateOne() {
   Serial.print(" servoY: ");
   Serial.println(servoY, 16);
   Serial.println((String)"Satellites: " + gpsData.satellites + ", Altitude: " + gpsData.alt);
+  lcd.setCursor(0, 0);
+  lcd.print("Cal1, # Sats: ");
+  lcd.print(gpsData.satellites);
+  
   delay(1000);
 }
 
@@ -196,6 +215,17 @@ float calibrationStateTwo() {
   Serial.print(" yCal: ");
   Serial.println(xCal, 16);
   Serial.println((String)"Satellites: " + gpsData.satellites + ", Altitude: " + gpsData.alt);
-  
+  lcd.setCursor(0, 0);
+  lcd.print("Cal2, # Sats: ");
+  lcd.print(gpsData.satellites);
   return b;
+}
+
+
+/** 
+* Prints desired info on the analog display.
+* @param message to be printed
+*/
+void lcdPrint (String message) {
+  lcd.print(message);
 }
