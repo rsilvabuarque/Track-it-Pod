@@ -1,5 +1,5 @@
 #include <math.h>
-#include <Servo.h>
+#include <Stepper.h>
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
@@ -16,21 +16,22 @@ const byte address[6] = "00001"; // radio address
 #define RADIO_CSN_PIN 8 // Pin for CSN on radio
 #define SERVO_PIN 4 // digital pin for servo signal
 #define CALIBRATION_POT_PIN A7 // analog pin for calibration switch
+#define STEPS_PER_REVOLUTION 1800 // number of steps for one revolution for stepper motor (0.2 deg per step)
 
 float xCal, yCal;
 float servoX, servoY;
 float prevX, prevY;
 float b;
+float leftoverSteps;
 
-Servo myservo; // create servo object
-RF24 radio(RADIO_CE_PIN, RADIO_CSN_PIN); // create radio object (CE, CSN)
-Data_Package gpsData;
+Stepper panStepper(STEPS_PER_REVOLUTION, 2, 3, 4, 5); // Create stepper object (IN1, IN2, IN3, IN4)
+RF24 radio(RADIO_CE_PIN, RADIO_CSN_PIN); // Create radio object (CE, CSN)
+Data_Package gpsData; // Create Data_Package for storing transmitting GPS data
 
 void setup() {
   Serial.begin(9600); // initialize serial communication at 9600 bits per second
 
-  // Set up servo
-  myservo.attach(SERVO_PIN); // attaches the servo on pin 9 to the servo object
+  // Will change to 3-way button in the future
   pinMode(CALIBRATION_POT_PIN, INPUT); // initialize calPot as input
 
   // Set up radio receiver
@@ -66,8 +67,7 @@ void loop() {
     angle = calcAngle(prevX, prevY, x, y, b);
     steps = angleToSteps(angle);
     
-    // write angle to servo, subtracting 85 due to centralization of the servo motor axis
-    myservo.write(angle); // set servo angle
+    panStepper.step(steps); // tell stepper to move desired number of steps
 
     prevX = x;
     prevY = y;
@@ -127,7 +127,19 @@ float calcAngle(float prevX, float prevY, float newX, float newY, float b) {
 * @return Calculated steps
 */
 int angleToSteps(float angle) {
-
+  float steps;
+  int roundedSteps;
+  steps = angle / (360 / STEPS_PER_REVOLUTION);
+  roundedSteps = round(steps);
+  leftoverSteps += steps - roundedSteps;
+  if (leftoverSteps >= 1) {
+    roundedSteps += 1;
+    leftoverSteps -= 1;
+  } else if (leftoverSteps <= -1) {
+    roundedSteps -= 1;
+    leftoverSteps += 1;
+  }
+  return roundedSteps;
 }
 
 /** 
@@ -139,7 +151,6 @@ void calibrationStateOne() {
   Serial.println("Calibration state 1...");
   Serial.println("Please turn the tripod so that the camera faces roughly towards the center of the action");
 
-  myservo.write(85); // Centralizes the servo motor to the center of its range of possible movements. The user should then turn the tripod to face the center of the action as well
   if (readRadio(gpsData)) {
     servoX = gpsData.lng;
     servoY = gpsData.lat;    
