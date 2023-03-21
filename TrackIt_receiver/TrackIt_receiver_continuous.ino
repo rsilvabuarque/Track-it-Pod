@@ -1,30 +1,8 @@
-#include <Servo.h>
 #include <math.h>
+#include <Servo.h>
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
-
-const byte address[6] = "00001"; // radio address
-const int radioPinCE = 7; // Pin for CE on radio
-const int radioPinCSN = 8; // Pin for CSN on radio
-const int servoPin = 4; // digital pin for servo signal
-const int calPot = A7; // analog pin for calibration switch
-const int potPinX = A0; // analog input pin for X coordinate
-const int potPinY = A1; // analog input pin for Y coordinate
-
-Servo myservo; // create servo object
-RF24 radio(radioPinCE, radioPinCSN); // create radio object (CE, CSN)
-
-float xCal, yCal;
-float x, y;
-float a, b, c;
-float distance;
-float angle;
-float oldangle;
-float deltaangle;
-float calPotState;
-float servoX;
-float servoY;
 
 struct Data_Package {
   float lat;
@@ -33,14 +11,27 @@ struct Data_Package {
   int satellites;
 };
 
+const byte address[6] = "00001"; // radio address
+#define RADIO_CE_PIN 7 // Pin for CE on radio
+#define RADIO_CSN_PIN 8 // Pin for CSN on radio
+#define SERVO_PIN 4 // digital pin for servo signal
+#define CALIBRATION_POT_PIN A7 // analog pin for calibration switch
+
+float xCal, yCal;
+float servoX, servoY;
+float prevX, prevY;
+float b;
+
+Servo myservo; // create servo object
+RF24 radio(RADIO_CE_PIN, RADIO_CSN_PIN); // create radio object (CE, CSN)
 Data_Package gpsData;
 
 void setup() {
   Serial.begin(9600); // initialize serial communication at 9600 bits per second
 
   // Set up servo
-  myservo.attach(servoPin); // attaches the servo on pin 9 to the servo object
-  pinMode(calPot, INPUT); // initialize calPot as input
+  myservo.attach(SERVO_PIN); // attaches the servo on pin 9 to the servo object
+  pinMode(CALIBRATION_POT_PIN, INPUT); // initialize calPot as input
 
   // Set up radio receiver
   radio.begin(); // Start radio
@@ -51,83 +42,35 @@ void setup() {
 }
 
 void loop() {
-  calPotState = analogRead(calPot);
-  Serial.println(calPotState);
-  if (calPotState <= 20) {
-    // Calibration State 1
-    myservo.write(85); // Centralizes the servo motor to the center of its range of possible movements. The user should then turn the tripod to face the center of the action as well
-    if (radio.available()) {
-      // read values from radio receiver
-      radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
-    }
-
-    servoX = gpsData.lng;
-    servoY = gpsData.lat;
-    
-
-    Serial.println("---");
-    Serial.println("Calibration state 1...");
-    Serial.println("Please turn the tripod so that the camera faces roughly towards the center of the action");
-    Serial.print("servoX: ");
-    Serial.print(servoX, 16);
-    Serial.print(" servoY: ");
-    Serial.println(servoY, 16);
-    Serial.println((String)"Satellites: " + gpsData.satellites + ", Altitude: " + gpsData.alt);
-    delay(1000);
-  } else if (calPotState <= 600) {
-    // Calibration State 2
-
-    // read values from radio receiver
-    if (radio.available()) {
-      radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
-    }
-    xCal = gpsData.lng;
-    yCal = gpsData.lat;
-
-    // calculate distance between tag and servo (a)
-    b = sqrt(pow(xCal - servoX, 2) + pow(yCal - servoY, 2));
-    
-    Serial.println("---");
-    Serial.println("Calibration state 2...");
-    Serial.println("Please move reasonably far from the tripod to the right, going perpendicular to the direction of action");
-    Serial.print("xCal: ");
-    Serial.print(xCal, 16);
-    Serial.print(" yCal: ");
-    Serial.println(xCal, 16);
-    Serial.println((String)"Satellites: " + gpsData.satellites + ", Altitude: " + gpsData.alt);
-    // store the old tag angle (85 for the calibration axis since that is the direction of the camera towards the action) for motor speed calculation
-    oldangle = 85;
+  float calibrationPot;
+  calibrationPot = analogRead(CALIBRATION_POT_PIN);
+  Serial.println(calibrationPot);
+  if (calibrationPot <= 20) {
+    calibrationStateOne();    
+  } else if (calibrationPot <= 600) {
+    b = calibrationStateTwo();
+    prevX = xCal;
+    prevY = yCal;
   } else {
     // Regular State
-
-    // read values from radio receiver
-    if (radio.available()) {
-      radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
-    }
-    x = gpsData.lng;
-    y = gpsData.lat;
-
-    // calculate distance between tag and servo (b)
-    a = sqrt(pow(x - servoX, 2) + pow(y - servoY, 2));
-    distance = a;
-    // calculate distance between tag and original tag position (c)
-    c = sqrt(pow(xCal - x, 2) + pow(yCal - y, 2));
-
-    // calculate angle between original tag position and new position
-    if (y >= x*((servoY - yCal) / (servoX - xCal))) {
-      angle = 360 - (acos((pow(a, 2) + pow(b, 2) - pow(c, 2)) / (2 * a * b)) * 180 / (atan(1) * 4));
+    float x, y, angle;
+    int steps;
+    // Read values from radio receiver
+    if (readRadio(gpsData)) {
+      x = gpsData.lng;
+      y = gpsData.lat;    
     } else {
-      angle = acos((pow(a, 2) + pow(b, 2) - pow(c, 2)) / (2 * a * b)) * 180 / (atan(1) * 4);
+      Serial.println("Radio unavailable.");
     }
-    deltaangle = angle - oldangle;
-    // write angle to servo by running the continuous motor clockwise or counterclockwise for a time determined with the motor's angular speed (0.02833 s/degree)
-    if (deltaangle > 0) {
-      myservo.write(0);
-    } else if (deltaangle == 0) {
-      myservo.write(90);
-    } else {
-      myservo.write(180);}
-    delay(0.17 * deltaangle / 60);
+    
+    angle = calcAngle(prevX, prevY, x, y, b);
+    steps = angleToSteps(angle);
+    
+    // write angle to servo, subtracting 85 due to centralization of the servo motor axis
+    myservo.write(angle); // set servo angle
+
+    prevX = x;
+    prevY = y;
 
     Serial.println("---");
     Serial.println("Tracking...");
@@ -138,4 +81,105 @@ void loop() {
     Serial.println((String)"Satellites: " + gpsData.satellites + ", Altitude: " + gpsData.alt);
     delay(100);
   }
+}
+
+/** Read GPS data from radio and input it into gpsData Data_package object.
+*
+* @param gpsData Data_Package object where to store the GPS information pulled
+* @return True if radio is available, false otherwise
+*/
+bool readRadio(Data_Package gpsData) {
+  if (radio.available()) {
+    // read values from radio receiver
+    radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
+    return true;
+  }
+  return false;
+}
+
+/** Calculate pan angle at which camera must be given positions of camera, tag, and calibration.
+*
+* @param a Distance between servo and tag, in units of latitude and longitude
+* @param b Distance between calibration point and servo, in units of latitude and longitude
+* @param c Distance between calibration point and tag, in units of latitude and longitude
+* @return Calculated angle
+*/
+float calcAngle(float prevX, float prevY, float newX, float newY, float b) {
+  float a, c, angle;
+  // calculate distance between tag and servo (b)
+  a = sqrt(pow(newX - servoX, 2) + pow(newY - servoY, 2));
+  // calculate distance between tag and original tag position (c)
+  c = sqrt(pow(prevX - newX, 2) + pow(prevY - newY, 2));
+
+  // calculate angle between original tag position and new position
+  if (newY >= newX*((servoY - prevY) / (servoX - prevX))) {
+    angle = -1 * (acos((pow(a, 2) + pow(b, 2) - pow(c, 2)) / (2 * a * b)) * 180 / (atan(1) * 4));
+  } else {
+    angle = acos((pow(a, 2) + pow(b, 2) - pow(c, 2)) / (2 * a * b)) * 180 / (atan(1) * 4);
+  }
+
+  return angle;
+}
+
+/** Calculate number of steps to take based on pan angle required.
+*
+* @param angle Angle required to turn to new tag position
+* @return Calculated steps
+*/
+int angleToSteps(float angle) {
+
+}
+
+/** 
+* Sets position of servo.
+*/
+// calculate distance between tag and servo (b)
+void calibrationStateOne() {
+  Serial.println("---");
+  Serial.println("Calibration state 1...");
+  Serial.println("Please turn the tripod so that the camera faces roughly towards the center of the action");
+
+  myservo.write(85); // Centralizes the servo motor to the center of its range of possible movements. The user should then turn the tripod to face the center of the action as well
+  if (readRadio(gpsData)) {
+    servoX = gpsData.lng;
+    servoY = gpsData.lat;    
+  } else {
+    Serial.println("Radio unavailable.");
+  }
+  
+  Serial.print("servoX: ");
+  Serial.print(servoX, 16);
+  Serial.print(" servoY: ");
+  Serial.println(servoY, 16);
+  Serial.println((String)"Satellites: " + gpsData.satellites + ", Altitude: " + gpsData.alt);
+  delay(1000);
+}
+
+/** 
+* Sets calibration point of reference.
+*/
+float calibrationStateTwo() {
+  float b;
+  Serial.println("---");
+  Serial.println("Calibration state 2...");
+  Serial.println("Please move reasonably far from the tripod to the right, going perpendicular to the direction of action");
+
+  // read values from radio receiver
+  if (readRadio(gpsData)) {
+    xCal = gpsData.lng;
+    yCal = gpsData.lat;
+  } else {
+    Serial.println("Radio unavailable.");
+  }
+
+  // calculate distance between tag and servo (a)
+  b = sqrt(pow(xCal - servoX, 2) + pow(yCal - servoY, 2));
+  
+  Serial.print("xCal: ");
+  Serial.print(xCal, 16);
+  Serial.print(" yCal: ");
+  Serial.println(xCal, 16);
+  Serial.println((String)"Satellites: " + gpsData.satellites + ", Altitude: " + gpsData.alt);
+  
+  return b;
 }
