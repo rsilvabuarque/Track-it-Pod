@@ -70,7 +70,6 @@ void loop() {
       Serial.println(gpsData.alt, 2);
       Serial.print("Satellites: ");
       Serial.println(gpsData.satellites);
-      }
     }
   }
   // Transmit GPS sensor data
