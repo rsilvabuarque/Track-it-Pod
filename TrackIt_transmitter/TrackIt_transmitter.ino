@@ -12,8 +12,8 @@ struct Data_Package {
 };
 
 const byte address[6] = "00001"; // radio address
-#define RADIO_CE_PIN 7 // Pin for CE on radio
-#define RADIO_CSN_PIN 8 // Pin for CSN on radio
+#define RADIO_CE_PIN 8 // Pin for CE on radio
+#define RADIO_CSN_PIN 9 // Pin for CSN on radio
 #define GPS_RX_PIN 4 // Pin for RX on GPS
 #define GPS_TX_PIN 3 // Pin for TX on GPS
 #define GPS_BAUD_RATE 9600 // Baud rate for GPS
