@@ -9,6 +9,8 @@ struct Data_Package {
   float lng;
   float alt;
   int satellites;
+  float speed;
+  float course;
 };
 
 const byte address[6] = "00001"; // radio address
@@ -25,7 +27,7 @@ Data_Package gpsData; // Create Data_Package object for storing and sending gps 
 
 void setup() {
   // Initialize serial communication at 9600 bits per second
-  Serial.begin(9600); 
+  Serial.begin(9600);
   gpsSerial.begin(GPS_BAUD_RATE);
 
   // Set up radio transmitter
@@ -34,7 +36,7 @@ void setup() {
   radio.setPALevel(RF24_PA_MAX); // Maximum power level to maximize range
   radio.setDataRate(RF24_250KBPS); // Minimum data range to maximize range
   radio.stopListening(); // Stop listening since this is a transmitter
-  
+
   // Default values
   gpsData.lat = gpsData.lng = gpsData.alt = gpsData.satellites = 9999;
 }
@@ -43,22 +45,32 @@ void loop() {
   // Read the GPS sensor data
   while (gpsSerial.available() > 0) {
     if (gps.encode(gpsSerial.read())) {
-      if (gps.location.isValid()) {
+      if (gps.location.isValid()) { // Obtaining latitude and longitude values
         gpsData.lat = gps.location.lat();
         gpsData.lng = gps.location.lng();
       } else {
         gpsData.lat = 9999;
-        gpsData.lng = 9999;        
+        gpsData.lng = 9999;
       }
       if (gps.altitude.isValid()) {
-        gpsData.alt = gps.altitude.value();
+        gpsData.alt = gps.altitude.value(); // Obtaining altitude in centimeters
       } else {
         gpsData.alt = 9999;
       }
       if (gps.satellites.isValid()) {
-        gpsData.satellites = gps.satellites.value();
+        gpsData.satellites = gps.satellites.value(); // Obtaining the number of connected satellites
       } else {
         gpsData.satellites = 9999;
+      }
+      if (gps.speed.isValid()) {
+        gpsData.speed = gps.speed.kmph(); // Obtaining the predicted speed in km/h
+      } else {
+        gpsData.speed = 9999;
+      }
+      if (gps.course.isValid()) {
+        gpsData.course = gps.course.deg(); // Obtaining predicted angular direction in degrees
+      } else {
+        gpsData.course = 9999;
       }
       // Debug
       Serial.println("---");
@@ -67,11 +79,15 @@ void loop() {
       Serial.print("Longitude: ");
       Serial.println(gpsData.lng, 16);
       Serial.print("Altitude (cm): ");
-      Serial.println(gpsData.alt, 2);
+      Serial.println(gpsData.alt, 16);
       Serial.print("Satellites: ");
       Serial.println(gpsData.satellites);
+      Serial.print("Speed: ");
+      Serial.println(gpsData.speed, 16);
+      Serial.print("Course: ");
+      Serial.println(gpsData.course, 16);
     }
   }
   // Transmit GPS sensor data
-  radio.write(&gpsData, sizeof(Data_Package));
+  radio.write(&gpsData, sizeof(gpsData));
 }
