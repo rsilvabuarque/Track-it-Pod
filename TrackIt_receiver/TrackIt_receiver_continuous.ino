@@ -14,8 +14,8 @@ struct Data_Package {
 };
 
 const byte address[6] = "00001"; // radio address
-#define RADIO_CE_PIN 7 // Pin for CE on radio
-#define RADIO_CSN_PIN 8 // Pin for CSN on radio
+#define RADIO_CE_PIN 8 // Pin for CE on radio
+#define RADIO_CSN_PIN 9 // Pin for CSN on radio
 #define SERVO_PIN 4 // digital pin for servo signal
 #define CALIBRATION_POT_PIN A7 // analog pin for calibration switch
 // if motor changed, lookup max stepper rpm and steps per revolution
