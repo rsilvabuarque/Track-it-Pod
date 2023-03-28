@@ -107,7 +107,7 @@ void loop() {
 bool readRadio(Data_Package gpsData) {
   if (radio.available()) {
     // read values from radio receiver
-    radio.read(&gpsData, sizeof(Data_Package)); // Read the whole data and store it into the 'data' structure
+    radio.read(&gpsData, sizeof(gpsData)); // Read the whole data and store it into the 'data' structure
     lcd.setCursor(0, 1);
     lcd.print("Radio read OK :)");
     return true;
