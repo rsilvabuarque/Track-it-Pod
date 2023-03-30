@@ -1,8 +1,6 @@
-#include <SPI.h>
-#include <nRF24L01.h>
-#include <RF24.h>
 #include <SoftwareSerial.h>
 #include <TinyGPS++.h>
+#include <string.h>
 
 struct Data_Package {
   float lat;
@@ -14,13 +12,14 @@ struct Data_Package {
 };
 
 const byte address[6] = "00001"; // radio address
-#define RADIO_CE_PIN 8 // Pin for CE on radio
-#define RADIO_CSN_PIN 9 // Pin for CSN on radio
+#define RADIO_TX_PIN 8 // Pin for CE on radio
+#define RADIO_RX_PIN 9 // Pin for CSN on radio
+#define RADIO_BAUD_RATE 9600 // Baud rate for radio
 #define GPS_RX_PIN 4 // Pin for RX on GPS
 #define GPS_TX_PIN 3 // Pin for TX on GPS
 #define GPS_BAUD_RATE 9600 // Baud rate for GPS
 
-RF24 radio(RADIO_CE_PIN, RADIO_CSN_PIN); // Create radio object (CE, CSN)
+SoftwareSerial radio(RADIO_TX_PIN, RADIO_RX_PIN); // Create a SoftwareSerial object to communicate with the radio
 SoftwareSerial gpsSerial(GPS_RX_PIN, GPS_TX_PIN); // Create a SoftwareSerial object to communicate with the GPS sensor
 TinyGPSPlus gps; // Create an instance of the TinyGPS++ object
 Data_Package gpsData; // Create Data_Package object for storing and sending gps data
@@ -29,15 +28,9 @@ void setup() {
   // Initialize serial communication at 9600 bits per second
   Serial.begin(9600);
   gpsSerial.begin(GPS_BAUD_RATE);
+  radio.begin(RADIO_BAUD_RATE);
 
-  // Set up radio transmitter
-  radio.begin(); // Start radio
-  radio.openWritingPipe(address); // Set address to write to
-  radio.setPALevel(RF24_PA_MAX); // Maximum power level to maximize range
-  radio.setDataRate(RF24_250KBPS); // Minimum data range to maximize range
-  radio.stopListening(); // Stop listening since this is a transmitter
-
-  // Default values
+  // Default values for GPS
   gpsData.lat = gpsData.lng = gpsData.alt = gpsData.satellites = 9999;
 }
 
@@ -89,5 +82,22 @@ void loop() {
     }
   }
   // Transmit GPS sensor data
-  radio.write(&gpsData, sizeof(gpsData));
+  int bytesSent = radioTransmit(radio, gpsData);
+  Serial.println(std::format("Sent {} bytes.", bytesSent));
+}
+
+int radioTransmit(SoftwareSerial radio, DataPackage gpsData) {
+  string fmt = "<{lat};{lng};{alt};{sat};{spd};{crs}>";
+  string encoded = std::format(
+    fmt, 
+    gpsData.lat, 
+    gpsData.lng, 
+    gpsData.alt, 
+    gpsData.satellites, 
+    gpsData.speed, 
+    gpsData.course
+  );
+  char data[] = new char[encoded.length() + 1];
+  strcpy(data, encoded.c_str())
+  return radio.write(encoded);
 }
