@@ -1,5 +1,6 @@
 #include <math.h>
 #include <string.h>
+#include <algorithm.h>
 #include <SoftwareSerial.h>
 #include <Stepper.h>
 #include <Wire.h> 
@@ -10,7 +11,11 @@ struct Data_Package {
   float lng;
   float alt;
   int satellites;
+  float speed;
+  float course;
 };
+
+bool dataReceived;
 
 const byte address[6] = "00001"; // radio address
 #define RADIO_TX_PIN 8 // Pin for CE on radio
@@ -60,48 +65,25 @@ void loop() {
   Serial.println(calibrationPot);
   if (calibrationPot <= 20) {
     calibrationStateOne();
+    delay(100);
   } else if (calibrationPot <= 600) {
     b = calibrationStateTwo();
     prevX = xCal;
     prevY = yCal;
+    delay(100);
   } else {
     // Regular State
-    float x, y, angle;
-    int steps;
-    // Read values from radio receiver
-    gpsData = readRadio();
-    x = gpsData.lng;
-    y = gpsData.lat;
-    
-    angle = calcAngle(prevX, prevY, x, y, b);
-    steps = angleToSteps(angle);
-    
-    panStepper.step(steps); // tell stepper to move desired number of steps
-
-    prevX = x;
-    prevY = y;
-
-    Serial.println("---");
-    Serial.println("Tracking...");
-    Serial.print("x: ");
-    Serial.print(x, 16);
-    Serial.print(" y: ");
-    Serial.println(y, 16);
-    Serial.println((String)"Satellites: " + gpsData.satellites + ", Altitude: " + gpsData.alt);
-    lcd.setCursor(0, 0);
-    lcd.print("Track # Sats: ");
-    lcd.print(gpsData.satellites);
+    trackingState();
     delay(100);
   }
 }
 
 /** Read GPS data from radio and input it into gpsData Data_package object.
 *
-* @param gpsData Data_Package object where to store the GPS information pulled
-* @return True if radio is available, false otherwise
+* @return gpsData Data_Package object with the GPS information.
 */
 Data_Package readRadio() {
-  Data_Package dp;
+  dataReceived = false;
   String encoded = "";
   bool start = false;
   char incomingByte;
@@ -111,20 +93,45 @@ Data_Package readRadio() {
     // If the byte is the <, start adding chars to 'encoded' string. If not, ignore.
     if (incomingByte = '<') { 
       start = true;
+      incomingByte = radio.read(); // Read next byte, ie. ignore the '<'
     }
     if (start) {
       if (incomingByte != '>') {
         encoded += char(incomingByte);
+        dataReceived = true;
       } else {
         start = false;
       }
     }
   }
-  /*
-  INSERT CODE HERE FOR PARSING INFO FROM RECEIVED BYTES
-  */
-  lcd.setCursor(0, 1);
-  lcd.print("Radio read OK :)");
+  return parseEncodedMessage(encoded);
+}
+
+/** Parse encoded data string received from radio and create a Data_Package object
+* with the information.
+* 
+* @param encoded String with the message received from radio.
+* @return gpsData Data_Package object with the GPS information.
+*/
+Data_Package parseEncodedMessage(String encoded) {
+  Data_Package dp;
+  String delimiter = ";";
+  char* values[std::count(encoded.begin(), encoded.end(), ';') + 1] = {""};
+  int last = 0;
+  int next = 0;
+  int i = 0;
+  while ((next = encoded.find(delimiter, last)) != std::string::npos) {
+    value = encoded.substr(last, next - last);
+    values[i] = value;
+    last = next + 1;
+    i++;
+  }
+  dp.lat = values[0];
+  dp.lng = values[1];
+  dp.alt = values[2];
+  dp.satellites = values[3];
+  dp.speed = values[4];
+  dp.course = values[5];
   return dp;
 }
 
@@ -180,14 +187,19 @@ int angleToSteps(float angle) {
 void calibrationStateOne() {
   Serial.println("---");
   Serial.println("Calibration state 1...");
-  Serial.println("Please turn the tripod so that the camera faces roughly towards the center of the action");
 
-  if (readRadio(gpsData)) {
-    servoX = gpsData.lng;
-    servoY = gpsData.lat;    
+  // Read values from radio receiver
+  gpsData = readRadio();
+  // Write to LCD display if any data was received by radio
+  if (dataReceived) {
+    lcd.setCursor(0, 1);
+    lcd.print("Radio read OK :)");
   } else {
-    Serial.println("Radio unavailable.");
+    lcd.setCursor(0, 1);
+    lcd.print("Radio error!");
   }
+  servoX = gpsData.lng;
+  servoY = gpsData.lat; 
   
   Serial.print("servoX: ");
   Serial.print(servoX, 16);
@@ -197,8 +209,6 @@ void calibrationStateOne() {
   lcd.setCursor(0, 0);
   lcd.print("Cal1, # Sats: ");
   lcd.print(gpsData.satellites);
-  
-  delay(1000);
 }
 
 /** 
@@ -208,15 +218,19 @@ float calibrationStateTwo() {
   float b;
   Serial.println("---");
   Serial.println("Calibration state 2...");
-  Serial.println("Please move reasonably far from the tripod to the right, going perpendicular to the direction of action");
 
-  // read values from radio receiver
-  if (readRadio(gpsData)) {
-    xCal = gpsData.lng;
-    yCal = gpsData.lat;
+  // Read values from radio receiver
+  gpsData = readRadio();
+  // Write to LCD display if any data was received by radio
+  if (dataReceived) {
+    lcd.setCursor(0, 1);
+    lcd.print("Radio read OK :)");
   } else {
-    Serial.println("Radio unavailable.");
+    lcd.setCursor(0, 1);
+    lcd.print("Radio error!");
   }
+  xCal = gpsData.lng;
+  yCal = gpsData.lat;
 
   // calculate distance between tag and servo (a)
   b = sqrt(pow(xCal - servoX, 2) + pow(yCal - servoY, 2));
@@ -232,11 +246,42 @@ float calibrationStateTwo() {
   return b;
 }
 
-
 /** 
-* Prints desired info on the analog display.
-* @param message to be printed
+* Sets calibration point of reference.
 */
-void lcdPrint (String message) {
-  lcd.print(message);
+void trackingState() {
+  float x, y, angle;
+  int steps;
+  // Read values from radio receiver
+  gpsData = readRadio();
+  // Write to LCD display if any data was received by radio
+  if (dataReceived) {
+    lcd.setCursor(0, 1);
+    lcd.print("Radio read OK :)");
+  } else {
+    lcd.setCursor(0, 1);
+    lcd.print("Radio error!");
+  }
+  x = gpsData.lng;
+  y = gpsData.lat;
+  
+  angle = calcAngle(prevX, prevY, x, y, b);
+  steps = angleToSteps(angle);
+  
+  panStepper.step(steps); // tell stepper to move desired number of steps
+
+  prevX = x;
+  prevY = y;
+
+  Serial.println("---");
+  Serial.println("Tracking...");
+  Serial.print("x: ");
+  Serial.print(x, 16);
+  Serial.print(" y: ");
+  Serial.println(y, 16);
+  Serial.println((String)"Satellites: " + gpsData.satellites + ", Altitude: " + gpsData.alt);
+  lcd.setCursor(0, 0);
+  lcd.print("Track # Sats: ");
+  lcd.print(gpsData.satellites);
+  delay(100);
 }
