@@ -1,8 +1,7 @@
 #include <math.h>
+#include <string.h>
+#include <SoftwareSerial.h>
 #include <Stepper.h>
-#include <SPI.h>
-#include <nRF24L01.h>
-#include <RF24.h>
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
 
@@ -14,8 +13,8 @@ struct Data_Package {
 };
 
 const byte address[6] = "00001"; // radio address
-#define RADIO_CE_PIN 8 // Pin for CE on radio
-#define RADIO_CSN_PIN 9 // Pin for CSN on radio
+#define RADIO_TX_PIN 8 // Pin for CE on radio
+#define RADIO_RX_PIN 9 // Pin for CSN on radio
 #define SERVO_PIN 4 // digital pin for servo signal
 #define CALIBRATION_POT_PIN A7 // analog pin for calibration switch
 // if motor changed, lookup max stepper rpm and steps per revolution
@@ -29,7 +28,7 @@ float b;
 float leftoverSteps; 
 
 Stepper panStepper(STEPS_PER_REVOLUTION, 2, 4, 3, 5); // Create stepper object (IN1, IN2, IN3, IN4)
-RF24 radio(RADIO_CE_PIN, RADIO_CSN_PIN); // Create radio object (CE, CSN)
+SoftwareSerial radio(RADIO_CE_PIN, RADIO_CSN_PIN); // Create radio object (CE, CSN)
 Data_Package gpsData; // Create Data_Package for storing transmitting GPS data
 LiquidCrystal_I2C lcd(0x27, 16, 2); // Set the LCD address to 0x27 for a 16 chars and 2 line display
 
@@ -60,7 +59,7 @@ void loop() {
   calibrationPot = analogRead(CALIBRATION_POT_PIN);
   Serial.println(calibrationPot);
   if (calibrationPot <= 20) {
-    calibrationStateOne();    
+    calibrationStateOne();
   } else if (calibrationPot <= 600) {
     b = calibrationStateTwo();
     prevX = xCal;
@@ -70,12 +69,9 @@ void loop() {
     float x, y, angle;
     int steps;
     // Read values from radio receiver
-    if (readRadio(gpsData)) {
-      x = gpsData.lng;
-      y = gpsData.lat;    
-    } else {
-      Serial.println("Radio unavailable.");
-    }
+    gpsData = readRadio();
+    x = gpsData.lng;
+    y = gpsData.lat;
     
     angle = calcAngle(prevX, prevY, x, y, b);
     steps = angleToSteps(angle);
@@ -104,17 +100,32 @@ void loop() {
 * @param gpsData Data_Package object where to store the GPS information pulled
 * @return True if radio is available, false otherwise
 */
-bool readRadio(Data_Package gpsData) {
-  if (radio.available()) {
-    // read values from radio receiver
-    radio.read(&gpsData, sizeof(gpsData)); // Read the whole data and store it into the 'data' structure
-    lcd.setCursor(0, 1);
-    lcd.print("Radio read OK :)");
-    return true;
+Data_Package readRadio() {
+  Data_Package dp;
+  String encoded = "";
+  bool start = false;
+  char incomingByte;
+  while (radio.available()) {
+    incomingByte = radio.read(); // Read next byte from radio
+    delay(5); // Delay 5 milliseconds
+    // If the byte is the <, start adding chars to 'encoded' string. If not, ignore.
+    if (incomingByte = '<') { 
+      start = true;
+    }
+    if (start) {
+      if (incomingByte != '>') {
+        encoded += char(incomingByte);
+      } else {
+        start = false;
+      }
+    }
   }
+  /*
+  INSERT CODE HERE FOR PARSING INFO FROM RECEIVED BYTES
+  */
   lcd.setCursor(0, 1);
-  lcd.print("RADIO ERROR");
-  return false;
+  lcd.print("Radio read OK :)");
+  return dp;
 }
 
 /** Calculate pan angle at which camera must be given positions of camera, tag, and calibration.
