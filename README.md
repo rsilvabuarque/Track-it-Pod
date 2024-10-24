@@ -1,3 +1,3 @@
 # trackitpod
 
-_Messi._
+A patent-pending self-tracking tripod for recording water sports
